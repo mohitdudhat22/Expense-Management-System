@@ -22,7 +22,7 @@ router.post('/bulk', authorize(['user', 'admin']), async (req, res) => {
 });
 
 // Read Expenses with Filtering, Sorting, and Pagination
-router.get('/', authorize(['user', 'admin']), async (req, res) => {
+router.get('/', authorize(['user', 'admin']), async (req, res) => { 
   const { category, paymentMethod, startDate, endDate, sort, limit, page } = req.query;
   let filter = { userId: req.user._id };
 
@@ -53,6 +53,16 @@ router.delete('/', authorize(['user', 'admin']), async (req, res) => {
   const { ids } = req.body;
   try {
     await expenseModel.deleteMany({ _id: { $in: ids }, userId: req.user._id });
+    res.status(200).json({ message: 'Expenses deleted' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+// Delete Expenses
+router.delete('/:id', authorize(['user', 'admin']), async (req, res) => {
+  const { id } = req.params;
+  try {
+    await expenseModel.deleteOne({ _id: id, userId: req.user._id });
     res.status(200).json({ message: 'Expenses deleted' });
   } catch (err) {
     res.status(400).json({ error: err.message });

@@ -8,6 +8,7 @@ import morgan from 'morgan';
 import authRoutes from './routes/authRoutes.js';
 import errorHandler from './middlewares/errorHandler.js';
 import expenseRoutes from './routes/expenseRoutes.js';
+import authMiddleware from './middlewares/authMiddleware.js';
 const app = express();
 const PORT = process.env.PORT || 8080;
 dotenv.config({ path: './.env' });
@@ -22,7 +23,7 @@ app.use(morgan('dev'));
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/expense', expenseRoutes);
+app.use('/api/expense',authMiddleware, expenseRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 app.use(errorHandler());
