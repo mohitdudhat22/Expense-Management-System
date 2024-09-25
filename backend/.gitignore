@@ -1,0 +1,48 @@
+# Logs
+backend/logs
+backend/*.log
+backend/npm-debug.log*
+backend/yarn-debug.log*
+backend/yarn-error.log*
+backend/lerna-debug.log*
+backend/.pnpm-debug.log*
+
+# Dependency directories
+backend/node_modules/
+
+# Optional npm cache directory
+backend/.npm
+
+# dotenv environment variables file
+backend/.env
+backend/.env.test
+backend/.env.production
+
+# Coverage directory used by tools like istanbul
+backend/coverage
+
+# nyc test coverage
+backend/.nyc_output
+
+# Temporary files
+backend/tmp/
+backend/temp/
+
+# Build output
+backend/dist/
+backend/build/
+
+# IDE / Editor directories
+backend/.vscode/
+backend/.idea/
+
+# OS generated files
+backend/.DS_Store
+backend/Thumbs.db
+
+# Ignore package-lock.json for now (to avoid conflicts during dependency updates)
+backend/package-lock.json
+
+# Keep the temp directory, but ignore its contents
+!backend/public/temp/.gitkeep
+backend/public/temp/*
