@@ -96,16 +96,9 @@ export const deleteOneExpenses = async (id) => {
     throw error;
   }
 };
-
-export const bulkUploadExpenses = async (file) => {
-  const formData = new FormData();
-  formData.append('file', file);
+export const bulkUploadExpenses = async (expensesData) => {
   try {
-    const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/expenses/bulk`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/expenses/bulk`, expensesData);
     return response.data;
   } catch (error) {
     console.error('Error uploading expenses:', error);

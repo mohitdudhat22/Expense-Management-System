@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper
 import { Edit as EditIcon, Delete as DeleteIcon, Save as SaveIcon, Cancel as CancelIcon, Check as CheckIcon, Clear as ClearIcon, Upload as UploadIcon } from '@mui/icons-material';
 import { useExpense } from '../contexts/ExpenseContext';
 import { CSVLink } from 'react-csv';
+import { bulkUploadExpenses } from '../services/api';
 
 function ExpenseList() {
   const { state, fetchExpenses, updateExpense, deleteOneExpenses, deleteExpenses } = useExpense();
@@ -14,6 +15,7 @@ function ExpenseList() {
   const [editFormData, setEditFormData] = useState({});
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectMode, setSelectMode] = useState(false);
+  const [file, setFile] = useState(null); // State for the uploaded file
 
   useEffect(() => {
     fetchExpenses();
@@ -77,6 +79,52 @@ function ExpenseList() {
     setSelectedIds([]);
   };
 
+  const handleFileChange = async (event) => {
+    const selectedFile = event.target.files[0]; // Get the selected file
+    if (!selectedFile) {
+      alert('Please select a file to upload.');
+      return;
+    }
+    setFile(selectedFile); // Set the selected file
+  
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target.result;
+      const parsedData = parseCSV(text); // Parse CSV data
+      console.log(parsedData); // Log the parsed data
+      try {
+        const response = await bulkUploadExpenses(parsedData); // Send parsed data to API
+        alert(response.message); // Show success message
+        fetchExpenses(); // Refresh the expenses list
+        setFile(null); // Clear the file input
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        alert('Error uploading file. Please try again.');
+      }
+    };
+    reader.readAsText(selectedFile); // Read the file as text
+  };
+
+  const parseCSV = (text) => {
+    const lines = text.split('\n');
+    const result = [];
+    const headers = lines[0].split(','); // Get headers from the first line
+
+    for (let i = 1; i < lines.length; i++) {
+      const obj = {};
+      const currentLine = lines[i].split(',');
+
+      headers.forEach((header, index) => {
+        obj[header.trim()] = currentLine[index].trim(); // Map headers to values
+      });
+
+      if (obj.amount && obj.category && obj.paymentMethod) { // Validate required fields
+        result.push(obj);
+      }
+    }
+    return result; // Return parsed data
+  };
+
   const csvData = state.expenses.map(({ _id, createdAt, amount, category, paymentMethod }) => ({
     _id,
     createdAt,
@@ -94,7 +142,7 @@ function ExpenseList() {
   const paginatedExpenses = sortedExpenses.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
-    <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+    <Paper sx={{ width: '100%', height: '100vh', overflow: 'hidden' }}> // Set height to 100vh
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#1a1a1a', borderRadius: '8px' }}>
         <div style={{ display: 'flex', gap: '10px' }}>
           <Button 
@@ -121,17 +169,21 @@ function ExpenseList() {
           >
             Delete Selected
           </Button>
-          <Button 
-            variant="contained" 
-            color="success" 
-            startIcon={<UploadIcon />} 
-            sx={{ backgroundColor: '#28a745', '&:hover': { backgroundColor: '#218838' } }}
-          >
-            Bulk Add
-          </Button>
+                        <input 
+                type="file" 
+                accept=".csv" 
+                onChange={handleFileChange} 
+                style={{ display: 'none' }} 
+                id="bulk-upload" 
+              />
+              <label htmlFor="bulk-upload">
+                <Button variant="contained" component="span" startIcon={<UploadIcon />}>
+                  Upload CSV
+                </Button>
+              </label>
         </div>
       </div>
-      <TableContainer sx={{ maxHeight: 440 }}>
+      <TableContainer sx={{ maxHeight: 'calc(100vh - 100px)' }}> // Adjust maxHeight to fit within the screen
         <Table stickyHeader>
           <TableHead>
             <TableRow>
@@ -179,42 +231,9 @@ function ExpenseList() {
                     />
                   </TableCell>
                 )}
-                <TableCell>
-                  {editingId === expense._id ? (
-                    <TextField
-                      name="date"
-                      type="date"
-                      value={new Date(editFormData.createdAt).toISOString().split('T')[0]} 
-                      onChange={handleEditChange}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  ) : (
-                    new Date(expense.createdAt).toLocaleDateString() 
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingId === expense._id ? (
-                    <TextField
-                      name="amount"
-                      type="number"
-                      value={editFormData.amount}
-                      onChange={handleEditChange}
-                    />
-                  ) : (
-                    expense.amount
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingId === expense._id ? (
-                    <TextField
-                      name="category"
-                      value={editFormData.category}
-                      onChange={handleEditChange}
-                    />
-                  ) : (
-                    expense.category
-                  )}
-                </TableCell>
+                <TableCell>{new Date(expense.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>{expense.amount}</TableCell>
+                <TableCell>{expense.category}</TableCell>
                 <TableCell>{expense.paymentMethod}</TableCell>
                 <TableCell>
                   {editingId === expense._id ? (
