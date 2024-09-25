@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TablePagination, TableSortLabel, TextField, IconButton, Button } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Save as SaveIcon, Cancel as CancelIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, Save as SaveIcon, Cancel as CancelIcon, Check as CheckIcon, Clear as ClearIcon, Upload as UploadIcon } from '@mui/icons-material';
 import { useExpense } from '../contexts/ExpenseContext';
+import { CSVLink } from 'react-csv';
 
 function ExpenseList() {
   const { state, fetchExpenses, updateExpense, deleteOneExpenses, deleteExpenses } = useExpense();
@@ -11,10 +12,11 @@ function ExpenseList() {
   const [order, setOrder] = useState('desc');
   const [editingId, setEditingId] = useState(null);
   const [editFormData, setEditFormData] = useState({});
-  const [selectedIds, setSelectedIds] = useState([]); // State for selected expenses
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectMode, setSelectMode] = useState(false);
 
   useEffect(() => {
-    fetchExpenses(); // Fetch expenses when the component mounts
+    fetchExpenses();
   }, [fetchExpenses]);
 
   const handleChangePage = (event, newPage) => {
@@ -56,12 +58,12 @@ function ExpenseList() {
   };
 
   const handleDelete = async (id) => {
-    await deleteOneExpenses(id); // Call the context method to delete the expense
+    await deleteOneExpenses(id);
   };
 
   const handleBulkDelete = async () => {
-    await deleteExpenses(selectedIds); // Call the context method to delete selected expenses
-    setSelectedIds([]); // Clear selected IDs after deletion
+    await deleteExpenses(selectedIds);
+    setSelectedIds([]);
   };
 
   const handleSelectExpense = (id) => {
@@ -70,7 +72,19 @@ function ExpenseList() {
     );
   };
 
-  // Sort and paginate expenses
+  const handleToggleSelectMode = () => {
+    setSelectMode((prev) => !prev);
+    setSelectedIds([]);
+  };
+
+  const csvData = state.expenses.map(({ _id, createdAt, amount, category, paymentMethod }) => ({
+    _id,
+    createdAt,
+    amount,
+    category,
+    paymentMethod,
+  }));
+
   const sortedExpenses = [...state.expenses].sort((a, b) => {
     if (a[orderBy] < b[orderBy]) return order === 'asc' ? -1 : 1;
     if (a[orderBy] > b[orderBy]) return order === 'asc' ? 1 : -1;
@@ -81,19 +95,47 @@ function ExpenseList() {
 
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-      <Button 
-        variant="contained" 
-        color="secondary" 
-        onClick={handleBulkDelete} 
-        disabled={selectedIds.length === 0} // Disable if no expenses are selected
-      >
-        Delete Selected
-      </Button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#1a1a1a', borderRadius: '8px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={handleToggleSelectMode} 
+            startIcon={selectMode ? <ClearIcon /> : <CheckIcon />}
+            sx={{ backgroundColor: '#007bff', '&:hover': { backgroundColor: '#0056b3' } }}
+          >
+            {selectMode ? 'Exit Select Mode' : 'Select Expenses'}
+          </Button>
+          <CSVLink data={csvData} filename="expenses.csv">
+            <Button variant="contained" color="primary" startIcon={<CheckIcon />} sx={{ backgroundColor: '#007bff', '&:hover': { backgroundColor: '#0056b3' } }}>
+              Export CSV
+            </Button>
+          </CSVLink>
+          <Button 
+            variant="contained" 
+            color="secondary" 
+            onClick={handleBulkDelete} 
+            disabled={selectedIds.length === 0} 
+            startIcon={<DeleteIcon />} 
+            sx={{ backgroundColor: '#dc3545', '&:hover': { backgroundColor: '#c82333' } }}
+          >
+            Delete Selected
+          </Button>
+          <Button 
+            variant="contained" 
+            color="success" 
+            startIcon={<UploadIcon />} 
+            sx={{ backgroundColor: '#28a745', '&:hover': { backgroundColor: '#218838' } }}
+          >
+            Bulk Add
+          </Button>
+        </div>
+      </div>
       <TableContainer sx={{ maxHeight: 440 }}>
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell>Select</TableCell> {/* New column for selection */}
+              {selectMode && <TableCell>Select</TableCell>}
               <TableCell>
                 <TableSortLabel
                   active={orderBy === 'date'}
@@ -128,13 +170,15 @@ function ExpenseList() {
           <TableBody>
             {paginatedExpenses.map((expense) => (
               <TableRow key={expense._id}>
-                <TableCell>
-                  <input 
-                    type="checkbox" 
-                    checked={selectedIds.includes(expense._id)} 
-                    onChange={() => handleSelectExpense(expense._id)} 
-                  />
-                </TableCell>
+                {selectMode && (
+                  <TableCell>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedIds.includes(expense._id)} 
+                      onChange={() => handleSelectExpense(expense._id)} 
+                    />
+                  </TableCell>
+                )}
                 <TableCell>
                   {editingId === expense._id ? (
                     <TextField

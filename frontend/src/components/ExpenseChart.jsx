@@ -33,13 +33,19 @@ const PieChartTooltip = ({ active, payload }) => {
 function ExpenseChart() {
   const { state } = useExpense();
   const { monthly, category } = state.chartData;
-
+  const totalMonthlyExpenses = monthly.reduce((sum, item) => sum + item.total, 0);
+  const totalCategoryExpenses = category.reduce((sum, item) => sum + item.total, 0);
   return (
     <div className="space-y-6 bg-black text-gray-200 p-6 rounded-lg shadow-md">
       <h1 className="text-2xl font-bold text-center mb-6">
         Expense Overview
       </h1>
-
+      <div className="bg-gray-900 p-4 rounded-lg shadow-md mb-6 text-center">
+        <h2 className="text-xl font-semibold mb-4 text-gray-200">Total Expenses</h2>
+        <p className="text-3xl font-bold text-green-400">
+          {totalMonthlyExpenses.toFixed(2)}
+        </p>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Monthly Expenses Line Chart */}
         <div className="bg-gray-900 p-4 rounded-lg shadow-md">
@@ -91,7 +97,9 @@ function ExpenseChart() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <PieTooltip content={<PieChartTooltip />} />
+                  <PieTooltip
+                    content={<PieChartTooltip totalExpenses={totalCategoryExpenses} />}
+                  />
                   <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ color: '#ccc' }} />
                 </PieChart>
               </ResponsiveContainer>
