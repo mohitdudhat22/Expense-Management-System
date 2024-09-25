@@ -124,6 +124,7 @@ export function ExpenseProvider({ children }) {
     deleteExpense,
     setFilters,
     addCategory,
+    dispatch
   };
 
   return (

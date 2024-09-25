@@ -26,7 +26,7 @@ function ExpenseForm() {
         type: 'ADD_EXPENSE',
         payload: { ...formData, id: Date.now(), amount: parseFloat(formData.amount) },
       });
-      navigate('/list');
+      // navigate('/list');
     }
   };
 
