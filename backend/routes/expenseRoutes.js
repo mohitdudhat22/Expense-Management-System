@@ -17,6 +17,7 @@ router.post('/', authorize(['user', 'admin']), async (req, res) => {
     if (['cash', 'credit'].indexOf(paymentMethod) === -1) {
       return res.status(400).json({ error: 'Invalid payment method' });
     }
+    console.log(req.user._id);
     const expense = new expenseModel({ ...req.body, userId: req.user._id });
     await expense.save();
     res.status(201).json(expense);
@@ -25,7 +26,7 @@ router.post('/', authorize(['user', 'admin']), async (req, res) => {
   }
 });
 
-router.get('/', cache('monthlyStats'), authorize(['user', 'admin']), async (req, res) => { 
+router.get('/', authorize(['user', 'admin']), async (req, res) => { 
   const { category, paymentMethod, startDate, endDate, sort, limit, page } = req.query;
   let filter = { userId: req.user._id };
 

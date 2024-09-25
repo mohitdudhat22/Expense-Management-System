@@ -1,17 +1,13 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { TextField, Button, Select, MenuItem, FormControl, InputLabel, Box, Autocomplete } from '@mui/material';
 import { useExpense } from '../contexts/ExpenseContext';
 
 function ExpenseForm() {
-  const navigate = useNavigate();
-  const { state, dispatch } = useExpense();
+  const { addExpense, state } = useExpense(); // Use addExpense from context
   const [formData, setFormData] = useState({
     amount: '',
-    description: '',
-    date: '',
     category: '',
-    paymentMethod: '',
+    paymentMethod: 'cash',
   });
 
   const handleChange = (e) => {
@@ -22,17 +18,17 @@ function ExpenseForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      dispatch({
-        type: 'ADD_EXPENSE',
-        payload: { ...formData, id: Date.now(), amount: parseFloat(formData.amount) },
+      addExpense({
+        amount: parseFloat(formData.amount),
+        category: formData.category,
+        paymentMethod: formData.paymentMethod,
       });
       resetForm();
     }
   };
 
   const validateForm = () => {
-    // Check for empty fields or invalid values
-    if (!formData.amount || !formData.description || !formData.date || !formData.category || !formData.paymentMethod) {
+    if (!formData.amount || !formData.category || !formData.paymentMethod) {
       alert("Please fill out all fields.");
       return false;
     }
@@ -42,10 +38,8 @@ function ExpenseForm() {
   const resetForm = () => {
     setFormData({
       amount: '',
-      description: '',
-      date: '',
       category: '',
-      paymentMethod: '',
+      paymentMethod: 'cash',
     });
   };
 
@@ -59,26 +53,6 @@ function ExpenseForm() {
         type="number"
         value={formData.amount}
         onChange={handleChange}
-        required
-      />
-      <TextField
-        fullWidth
-        margin="normal"
-        name="description"
-        label="Description"
-        value={formData.description}
-        onChange={handleChange}
-        required
-      />
-      <TextField
-        fullWidth
-        margin="normal"
-        name="date"
-        label="Date"
-        type="date"
-        value={formData.date}
-        onChange={handleChange}
-        InputLabelProps={{ shrink: true }}
         required
       />
       <Autocomplete

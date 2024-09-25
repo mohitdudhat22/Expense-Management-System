@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TablePagination, TableSortLabel, TextField, IconButton } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Save as SaveIcon, Cancel as CancelIcon } from '@mui/icons-material';
 import { useExpense } from '../contexts/ExpenseContext';
 
 function ExpenseList() {
-  const { state, dispatch } = useExpense();
+  const { state, fetchExpenses, updateExpense, deleteExpense } = useExpense();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [orderBy, setOrderBy] = useState('date');
   const [order, setOrder] = useState('desc');
   const [editingId, setEditingId] = useState(null);
   const [editFormData, setEditFormData] = useState({});
+  console.log(state)
+  useEffect(() => {
+    fetchExpenses(); // Fetch expenses when the component mounts
+  }, [fetchExpenses]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -28,8 +32,8 @@ function ExpenseList() {
   };
 
   const handleEdit = (expense) => {
-    setEditingId(expense.id);
-    setEditFormData(expense);
+    setEditingId(expense._id);
+    setEditFormData({...expense});
   };
 
   const handleEditChange = (e) => {
@@ -37,8 +41,8 @@ function ExpenseList() {
     setEditFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleEditSave = () => {
-    dispatch({ type: 'UPDATE_EXPENSE', payload: editFormData });
+  const handleEditSave = async () => {
+    await updateExpense(editFormData); // Call the context method to update the expense
     setEditingId(null);
   };
 
@@ -46,8 +50,8 @@ function ExpenseList() {
     setEditingId(null);
   };
 
-  const handleDelete = (id) => {
-    dispatch({ type: 'DELETE_EXPENSE', payload: id });
+  const handleDelete = async (id) => {
+    await deleteExpense(id); // Call the context method to delete the expense
   };
 
   // Sort and paginate expenses
@@ -76,15 +80,6 @@ function ExpenseList() {
               </TableCell>
               <TableCell>
                 <TableSortLabel
-                  active={orderBy === 'description'}
-                  direction={orderBy === 'description' ? order : 'asc'}
-                  onClick={() => handleSort('description')}
-                >
-                  Description
-                </TableSortLabel>
-              </TableCell>
-              <TableCell>
-                <TableSortLabel
                   active={orderBy === 'amount'}
                   direction={orderBy === 'amount' ? order : 'asc'}
                   onClick={() => handleSort('amount')}
@@ -107,33 +102,22 @@ function ExpenseList() {
           </TableHead>
           <TableBody>
             {paginatedExpenses.map((expense) => (
-              <TableRow key={expense.id}>
+              <TableRow key={expense._id}>
                 <TableCell>
-                  {editingId === expense.id ? (
+                  {editingId === expense._id ? (
                     <TextField
                       name="date"
                       type="date"
-                      value={editFormData.date}
+                      value={new Date(editFormData.createdAt).toISOString().split('T')[0]} 
                       onChange={handleEditChange}
                       InputLabelProps={{ shrink: true }}
                     />
                   ) : (
-                    expense.date
+                    new Date(expense.createdAt).toLocaleDateString() 
                   )}
                 </TableCell>
                 <TableCell>
-                  {editingId === expense.id ? (
-                    <TextField
-                      name="description"
-                      value={editFormData.description}
-                      onChange={handleEditChange}
-                    />
-                  ) : (
-                    expense.description
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingId === expense.id ? (
+                  {editingId === expense._id ? (
                     <TextField
                       name="amount"
                       type="number"
@@ -145,7 +129,7 @@ function ExpenseList() {
                   )}
                 </TableCell>
                 <TableCell>
-                  {editingId === expense.id ? (
+                  {editingId === expense._id ? (
                     <TextField
                       name="category"
                       value={editFormData.category}
@@ -157,7 +141,7 @@ function ExpenseList() {
                 </TableCell>
                 <TableCell>{expense.paymentMethod}</TableCell>
                 <TableCell>
-                  {editingId === expense.id ? (
+                  {editingId === expense._id ? (
                     <>
                       <IconButton onClick={handleEditSave}>
                         <SaveIcon />
@@ -171,7 +155,7 @@ function ExpenseList() {
                       <IconButton onClick={() => handleEdit(expense)}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(expense.id)}>
+                      <IconButton onClick={() => handleDelete(expense._id)}>
                         <DeleteIcon />
                       </IconButton>
                     </>

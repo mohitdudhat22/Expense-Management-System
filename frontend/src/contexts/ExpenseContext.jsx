@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import axios from 'axios';
+import { 
+  getExpenses, 
+  createExpense, 
+  updateExpense, 
+  deleteExpenses 
+} from './../services/api';  // Adjust the path to where your api.js file is located
 
 const ExpenseContext = createContext();
 
@@ -37,13 +42,13 @@ function expenseReducer(state, action) {
       return {
         ...state,
         expenses: state.expenses.map((expense) =>
-          expense.id === action.payload.id ? action.payload : expense
+          expense._id === action.payload._id ? action.payload : expense
         ),
       };
     case 'DELETE_EXPENSE':
       return {
         ...state,
-        expenses: state.expenses.filter((expense) => expense.id !== action.payload),
+        expenses: state.expenses.filter((expense) => expense._id !== action.payload),
       };
     case 'SET_FILTERS':
       return { ...state, filters: { ...state.filters, ...action.payload } };
@@ -57,27 +62,29 @@ function expenseReducer(state, action) {
       return state;
   }
 }
-const BASE_API = import.meta.env.VITE_BASE_API;
+
 export function ExpenseProvider({ children }) {
   const [state, dispatch] = useReducer(expenseReducer, initialState);
 
   const fetchExpenses = useCallback(async () => {
-    const response = await axios.get('/api/expenses');
-    dispatch({ type: 'SET_EXPENSES', payload: response.data });
+    const response = await getExpenses();
+    dispatch({ type: 'SET_EXPENSES', payload: response });
   }, []);
 
   const addExpense = useCallback(async (expense) => {
-    const response = await axios.post('/api/expenses', expense);
-    dispatch({ type: 'ADD_EXPENSE', payload: response.data });
+    console.log(expense, );
+    const response = await createExpense(expense);
+    dispatch({ type: 'ADD_EXPENSE', payload: response });
   }, []);
 
   const updateExpense = useCallback(async (updatedExpense) => {
-    const response = await axios.patch(`/api/expenses/${updatedExpense.id}`, updatedExpense);
-    dispatch({ type: 'UPDATE_EXPENSE', payload: response.data });
+    console.log(updatedExpense);
+    const response = await updateExpense(updatedExpense._id, updatedExpense);
+    dispatch({ type: 'UPDATE_EXPENSE', payload: response });
   }, []);
 
   const deleteExpense = useCallback(async (expenseId) => {
-    await axios.delete(`${BASE_API}/api/expenses/${expenseId}`);
+    await deleteExpenses([expenseId]);
     dispatch({ type: 'DELETE_EXPENSE', payload: expenseId });
   }, []);
 

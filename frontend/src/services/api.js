@@ -45,6 +45,7 @@ export const getUserProfile = async () => {
 };
 
 export const createExpense = async (expenseData) => {
+  console.log(expenseData);
   try {
     const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/expenses`, expenseData);
     return response.data;

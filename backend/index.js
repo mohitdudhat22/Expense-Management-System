@@ -23,7 +23,7 @@ app.use(morgan('dev'));
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/expense',authMiddleware, expenseRoutes);
+app.use('/api/expenses',authMiddleware, expenseRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 app.use(errorHandler());
