@@ -4,20 +4,15 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dbConnect from './config/dbConnect.js';
 import {swaggerUi, swaggerDocs} from './utils/swagger.js';
+import morgan from 'morgan';
+import authRoutes from './routes/authRoutes.js';
+import errorHandler from './middlewares/errorHandler.js';
+import expenseRoutes from './routes/expenseRoutes.js';
 const app = express();
 const PORT = process.env.PORT || 8080;
-// Load environment variables and connect to database
 dotenv.config({ path: './.env' });
 
-dbConnect().then(() => {
-    console.log('Connected to database');
-    app.on('error', (error) => {
-        console.log(error);
-        throw error;
-    });
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-});
-
+dbConnect();
 
 // Middleware
 app.use(express.json());
@@ -26,7 +21,9 @@ app.use(helmet());
 app.use(morgan('dev'));
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
+app.use('/api/auth', authRoutes);
+app.use('/api/expense', expenseRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
+app.use(errorHandler());
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
