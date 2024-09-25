@@ -1,6 +1,6 @@
 import express from 'express';
-import expenseModel from '../models/expenseModel';
-import authorize from '../middlewares/roleMiddleware';
+import expenseModel from '../models/expenseModel.js';
+import authorize from '../middlewares/roleMiddleware.js';
 const router = express.Router();
 
 
