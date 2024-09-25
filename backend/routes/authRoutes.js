@@ -5,7 +5,35 @@ import userModel from '../models/userModel.js';
 import dotenv from 'dotenv';
 dotenv.config();
 const router = express.Router();
-
+/**
+ * @swagger
+ * /register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               username:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: User already exists
+ *       500:
+ *         description: Server error
+ */
 router.post('/register', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 1 }).isString(),
@@ -32,6 +60,31 @@ router.post('/register', [
   }
 });
 
+/**
+ * @swagger
+ * /login:
+ *   post:
+ *     summary: Login a user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User logged in successfully
+ *       401:
+ *         description: Invalid credentials
+ *       500:
+ *         description: Server error
+ */
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 1 }).isString(),

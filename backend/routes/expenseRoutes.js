@@ -5,6 +5,42 @@ import { cache, setCache } from '../middlewares/cacheMiddleware.js';
 import upload from '../middlewares/multerMiddleware.js';
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Expenses
+ *   description: Expense management
+ */
+
+/**
+ * @swagger
+ * /:
+ *   post:
+ *     summary: Create a new expense
+ *     tags: [Expenses]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: number
+ *               category:
+ *                 type: string
+ *               paymentMethod:
+ *                 type: string
+ *             required:
+ *               - amount
+ *               - category
+ *               - paymentMethod
+ *     responses:
+ *       201:
+ *         description: Expense created successfully
+ *       400:
+ *         description: Invalid input
+ */
 router.post('/', authorize(['user', 'admin']), async (req, res) => {
   try {
     const { amount, category, paymentMethod } = req.body;
@@ -26,6 +62,47 @@ router.post('/', authorize(['user', 'admin']), async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: Get all expenses
+ *     tags: [Expenses]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: paymentMethod
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of expenses
+ */
 router.get('/', authorize(['user', 'admin']), async (req, res) => { 
   const { category, paymentMethod, startDate, endDate, sort, limit, page } = req.query;
   let filter = { userId: req.user._id };
@@ -42,6 +119,38 @@ router.get('/', authorize(['user', 'admin']), async (req, res) => {
   res.json(expenses);
 });
 
+/**
+ * @swagger
+ * /{id}:
+ *   patch:
+ *     summary: Update an expense
+ *     tags: [Expenses]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the expense to update
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: number
+ *               category:
+ *                 type: string
+ *               paymentMethod:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Expense updated successfully
+ *       400:
+ *         description: Invalid input
+ */
 router.patch('/:id', authorize(['user', 'admin']), async (req, res) => {
   try {
     const { amount, category, paymentMethod } = req.body;
@@ -61,6 +170,29 @@ router.patch('/:id', authorize(['user', 'admin']), async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /:
+ *   delete:
+ *     summary: Delete multiple expenses
+ *     tags: [Expenses]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Expenses deleted successfully
+ *       400:
+ *         description: No expense IDs provided
+ */
 router.delete('/', authorize(['user', 'admin']), async (req, res) => {
   const { ids } = req.body; 
 
@@ -84,52 +216,76 @@ router.delete('/', authorize(['user', 'admin']), async (req, res) => {
   }
 });
 
-// Bulk Upload CSV
-router.post('/bulk', authorize(['user', 'admin']),upload.single('file'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
+/**
+ * @swagger
+ * /bulk:
+ *   post:
+ *     summary: Bulk upload expenses
+ *     tags: [Expenses]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: array
+ *             items:
+ *               type: object
+ *               properties:
+ *                 amount:
+ *                   type: number
+ *                 category:
+ *                   type: string
+ *                 paymentMethod:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: Expenses uploaded successfully
+ *       400:
+ *         description: No expenses data provided
+ */
+router.post('/bulk', authorize(['user', 'admin']), async (req, res) => {
+  if (!req.body || !Array.isArray(req.body) || req.body.length === 0) {
+    return res.status(400).json({ error: 'No expenses data provided' });
   }
+  console.log(req.body)
+  const expenses = req.body.map(expense => ({
+    ...expense,
+    userId: req.user._id,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    amount: parseFloat(expense.amount),
+  }));
 
-  const expenses = [];
-  const allowedFields = ['amount', 'category', 'paymentMethod'];
   try {
-    req.file.buffer
-      .pipe(csv())
-      .on('data', (row) => {
-        // Validate each row's data
-        const expenseData = {};
-        for (const field of allowedFields) {
-          if (!row[field]) {
-            return res.status(400).json({ error: `Missing field: ${field}` });
-          }
-          expenseData[field] = row[field];
-        }
-
-        expenseData.amount = parseFloat(row.amount);
-        if (isNaN(expenseData.amount)) {
-          return res.status(400).json({ error: 'Invalid amount in CSV' });
-        }
-
-        expenseData.userId = req.user._id;
-        expenseData.createdAt = new Date();
-        expenseData.updatedAt = new Date();
-
-        expenses.push(expenseData);
-      })
-      .on('end', async () => {
-        if (expenses.length > 0) {
-          await Expense.insertMany(expenses);
-          return res.status(201).json({ message: 'Expenses uploaded successfully', count: expenses.length });
-        } else {
-          return res.status(400).json({ error: 'No valid expenses to upload' });
-        }
-      });
+    const result = await expenseModel.insertMany(expenses);
+    if (result.insertedCount === 0) {
+      return res.status(500).json({ error: 'No expenses inserted' });
+    }
+    return res.status(201).json({ message: 'Expenses uploaded successfully', count: result.insertedCount });
   } catch (err) {
-    return res.status(500).json({ error: 'Error processing the file' });
+    return res.status(500).json({ error: 'Error processing the expenses data', details: err.message });
   }
-
 });
 
+/**
+ * @swagger
+ * /{id}:
+ *   delete:
+ *     summary: Delete a single expense
+ *     tags: [Expenses]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the expense to delete
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Expense deleted successfully
+ *       400:
+ *         description: Invalid ID
+ */
 router.delete('/:id', authorize(['user', 'admin']), async (req, res) => {
   const { id } = req.params;
   try {
@@ -139,6 +295,17 @@ router.delete('/:id', authorize(['user', 'admin']), async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+/**
+ * @swagger
+ * /stats/monthly:
+ *   get:
+ *     summary: Get monthly expense statistics
+ *     tags: [Expenses]
+ *     responses:
+ *       200:
+ *         description: Monthly expense statistics
+ */
 router.get('/stats/monthly',cache('monthlyStats'), authorize(['user', 'admin']), async (req, res) => {
   try {
     const stats = await expenseModel.aggregate([
@@ -171,6 +338,17 @@ router.get('/stats/monthly',cache('monthlyStats'), authorize(['user', 'admin']),
     res.status(500).json({ error: err.message });
   }
 });
+
+/**
+ * @swagger
+ * /stats/category:
+ *   get:
+ *     summary: Get expense statistics by category
+ *     tags: [Expenses]
+ *     responses:
+ *       200:
+ *         description: Expense statistics by category
+ */
 router.get('/stats/category',cache('monthlyStats'), authorize(['user', 'admin']), async (req, res) => {
   try {
     const stats = await expenseModel.aggregate([
