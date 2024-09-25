@@ -1,13 +1,22 @@
 import express from 'express';
 import expenseModel from '../models/expenseModel.js';
 import authorize from '../middlewares/roleMiddleware.js';
+import { cache, setCache } from '../middlewares/cacheMiddleware.js';
+import upload from '../middlewares/multerMiddleware.js';
 const router = express.Router();
 
-
-// Add Expense
 router.post('/', authorize(['user', 'admin']), async (req, res) => {
   try {
-    const { amount, category, paymentMethod  } = req.body;
+    const { amount, category, paymentMethod } = req.body;
+    if (typeof amount !== 'number' || amount < 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+    if (typeof category !== 'string' || category.trim() === '') {
+      return res.status(400).json({ error: 'Invalid category' });
+    }
+    if (['cash', 'credit'].indexOf(paymentMethod) === -1) {
+      return res.status(400).json({ error: 'Invalid payment method' });
+    }
     const expense = new expenseModel({ ...req.body, userId: req.user._id });
     await expense.save();
     res.status(201).json(expense);
@@ -16,13 +25,7 @@ router.post('/', authorize(['user', 'admin']), async (req, res) => {
   }
 });
 
-// Bulk Upload CSV
-router.post('/bulk', authorize(['user', 'admin']), async (req, res) => {
-  // Handle CSV parsing and bulk insert logic here
-});
-
-// Read Expenses with Filtering, Sorting, and Pagination
-router.get('/', authorize(['user', 'admin']), async (req, res) => { 
+router.get('/', cache('monthlyStats'), authorize(['user', 'admin']), async (req, res) => { 
   const { category, paymentMethod, startDate, endDate, sort, limit, page } = req.query;
   let filter = { userId: req.user._id };
 
@@ -38,9 +41,18 @@ router.get('/', authorize(['user', 'admin']), async (req, res) => {
   res.json(expenses);
 });
 
-// Update Expense (PATCH)
 router.patch('/:id', authorize(['user', 'admin']), async (req, res) => {
   try {
+    const { amount, category, paymentMethod } = req.body;
+    if (amount && (typeof amount !== 'number' || amount < 0)) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+    if (category && (typeof category !== 'string' || category.trim() === '')) {
+      return res.status(400).json({ error: 'Invalid category' });
+    }
+    if (paymentMethod && ['cash', 'credit'].indexOf(paymentMethod) === -1) {
+      return res.status(400).json({ error: 'Invalid payment method' });
+    }
     const expense = await expenseModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(expense);
   } catch (err) {
@@ -50,15 +62,74 @@ router.patch('/:id', authorize(['user', 'admin']), async (req, res) => {
 
 // Delete Expenses (Bulk)
 router.delete('/', authorize(['user', 'admin']), async (req, res) => {
-  const { ids } = req.body;
+  const { ids } = req.body; 
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'No expense IDs provided' });
+  }
+
   try {
-    await expenseModel.deleteMany({ _id: { $in: ids }, userId: req.user._id });
-    res.status(200).json({ message: 'Expenses deleted' });
+    const result = await Expense.deleteMany({
+      _id: { $in: ids },
+      userId: req.user._id
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'No expenses found for deletion' });
+    }
+
+    res.status(200).json({ message: `${result.deletedCount} expenses deleted` });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
-// Delete Expenses
+
+// Bulk Upload CSV
+router.post('/bulk', authorize(['user', 'admin']),upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const expenses = [];
+  const allowedFields = ['amount', 'category', 'paymentMethod'];
+  try {
+    req.file.buffer
+      .pipe(csv())
+      .on('data', (row) => {
+        // Validate each row's data
+        const expenseData = {};
+        for (const field of allowedFields) {
+          if (!row[field]) {
+            return res.status(400).json({ error: `Missing field: ${field}` });
+          }
+          expenseData[field] = row[field];
+        }
+
+        expenseData.amount = parseFloat(row.amount);
+        if (isNaN(expenseData.amount)) {
+          return res.status(400).json({ error: 'Invalid amount in CSV' });
+        }
+
+        expenseData.userId = req.user._id;
+        expenseData.createdAt = new Date();
+        expenseData.updatedAt = new Date();
+
+        expenses.push(expenseData);
+      })
+      .on('end', async () => {
+        if (expenses.length > 0) {
+          await Expense.insertMany(expenses);
+          return res.status(201).json({ message: 'Expenses uploaded successfully', count: expenses.length });
+        } else {
+          return res.status(400).json({ error: 'No valid expenses to upload' });
+        }
+      });
+  } catch (err) {
+    return res.status(500).json({ error: 'Error processing the file' });
+  }
+
+});
+
 router.delete('/:id', authorize(['user', 'admin']), async (req, res) => {
   const { id } = req.params;
   try {
@@ -68,7 +139,7 @@ router.delete('/:id', authorize(['user', 'admin']), async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-router.get('/stats/monthly', authorize(['user', 'admin']), async (req, res) => {
+router.get('/stats/monthly',cache('monthlyStats'), authorize(['user', 'admin']), async (req, res) => {
   try {
     const stats = await expenseModel.aggregate([
       // Step 1: Match - Get expenses for the authenticated user
@@ -100,7 +171,7 @@ router.get('/stats/monthly', authorize(['user', 'admin']), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-router.get('/stats/category', authorize(['user', 'admin']), async (req, res) => {
+router.get('/stats/category',cache('monthlyStats'), authorize(['user', 'admin']), async (req, res) => {
   try {
     const stats = await expenseModel.aggregate([
       // Step 1: Match - Get expenses for the authenticated user
