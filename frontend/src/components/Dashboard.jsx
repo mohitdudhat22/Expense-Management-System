@@ -7,8 +7,8 @@ const Dashboard = () => {
   return (
     <div>
       <h1>Dashboard</h1>
-      <p>Welcome, {user.email}!</p>
-      {user.role === 'admin' && (
+      <p>Welcome, {user?.email}!</p>
+      {user?.role === 'admin' && (
         <div>
           <h2>Admin Panel</h2>
           {/* Admin-specific content */}

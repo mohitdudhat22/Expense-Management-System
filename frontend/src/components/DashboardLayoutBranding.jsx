@@ -4,9 +4,16 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { createTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
+import Dashboard from './Dashboard';
+import ExpenseList from './ExpenseList';
+import ExpenseForm from './ExpenseForm';
+import ExpenseChart from './ExpenseChart';
+import { ExpenseProvider } from '../contexts/ExpenseContext';
 
 const NAVIGATION = [
   {
@@ -15,13 +22,23 @@ const NAVIGATION = [
     icon: <DashboardIcon />,
   },
   {
-    segment: 'orders',
-    title: 'Orders',
-    icon: <ShoppingCartIcon />,
+    segment: 'expenses',
+    title: 'Expenses',
+    icon: <ReceiptIcon />,
+  },
+  {
+    segment: 'charts',
+    title: 'Analytics',
+    icon: <AssessmentIcon />,
+  },
+  {
+    segment: 'add',
+    title: 'Add Expense',
+    icon: <AddCircleIcon />,
   },
 ];
 
-const demoTheme = createTheme({
+const expenseTrackerTheme = createTheme({
   cssVariables: {
     colorSchemeSelector: 'data-toolpad-color-scheme',
   },
@@ -30,34 +47,45 @@ const demoTheme = createTheme({
     values: {
       xs: 0,
       sm: 600,
-      md: 600,
+      md: 900,
       lg: 1200,
       xl: 1536,
     },
   },
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
 });
 
-function DemoPageContent({ pathname }) {
-  return (
-    <Box
-      sx={{
-        py: 4,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-      }}
-    >
-      <Typography>Dashboard content for {pathname}</Typography>
-    </Box>
-  );
+function ExpenseTrackerContent({ pathname }) {
+  switch (pathname) {
+    case '/dashboard':
+      return <Dashboard />;
+    case '/expenses':
+      return <ExpenseList />;
+    case '/charts':
+      return <ExpenseChart />;
+    case '/add':
+      return <ExpenseForm />;
+    default:
+      return (
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography>Page not found</Typography>
+        </Box>
+      );
+  }
 }
 
-DemoPageContent.propTypes = {
+ExpenseTrackerContent.propTypes = {
   pathname: PropTypes.string.isRequired,
 };
 
-function DashboardLayoutBranding(props) {
+function ExpenseTrackerLayout(props) {
   const { window } = props;
 
   const [pathname, setPathname] = React.useState('/dashboard');
@@ -70,35 +98,30 @@ function DashboardLayoutBranding(props) {
     };
   }, [pathname]);
 
-  // Remove this const when copying and pasting into your project.
   const demoWindow = window !== undefined ? window() : undefined;
 
   return (
-    // preview-start
-    <AppProvider
-      navigation={NAVIGATION}
-      branding={{
-        logo: <img src="https://mui.com/static/logo.png" alt="MUI logo" />,
-        title: 'MUI',
-      }}
-      router={router}
-      theme={demoTheme}
-      window={demoWindow}
-    >
-      <DashboardLayout>
-        <DemoPageContent pathname={pathname} />
-      </DashboardLayout>
-    </AppProvider>
-    // preview-end
+    <ExpenseProvider>
+      <AppProvider
+        navigation={NAVIGATION}
+        branding={{
+          logo: <img src="/path/to/your/logo.png" alt="Expense Tracker Logo" />,
+          title: 'Expense Tracker',
+        }}
+        router={router}
+        theme={expenseTrackerTheme}
+        window={demoWindow}
+      >
+        <DashboardLayout>
+          <ExpenseTrackerContent pathname={pathname} />
+        </DashboardLayout>
+      </AppProvider>
+    </ExpenseProvider>
   );
 }
 
-DashboardLayoutBranding.propTypes = {
-  /**
-   * Injected by the documentation to work in an iframe.
-   * Remove this when copying and pasting into your project.
-   */
+ExpenseTrackerLayout.propTypes = {
   window: PropTypes.func,
 };
 
-export default DashboardLayoutBranding;
+export default ExpenseTrackerLayout;
