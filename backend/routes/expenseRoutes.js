@@ -61,7 +61,6 @@ router.patch('/:id', authorize(['user', 'admin']), async (req, res) => {
   }
 });
 
-// Delete Expenses (Bulk)
 router.delete('/', authorize(['user', 'admin']), async (req, res) => {
   const { ids } = req.body; 
 
@@ -70,7 +69,7 @@ router.delete('/', authorize(['user', 'admin']), async (req, res) => {
   }
 
   try {
-    const result = await Expense.deleteMany({
+    const result = await expenseModel.deleteMany({
       _id: { $in: ids },
       userId: req.user._id
     });

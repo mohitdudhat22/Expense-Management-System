@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TablePagination, TableSortLabel, TextField, IconButton } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TablePagination, TableSortLabel, TextField, IconButton, Button } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Save as SaveIcon, Cancel as CancelIcon } from '@mui/icons-material';
 import { useExpense } from '../contexts/ExpenseContext';
 
 function ExpenseList() {
-  const { state, fetchExpenses, updateExpense, deleteOneExpenses } = useExpense();
+  const { state, fetchExpenses, updateExpense, deleteOneExpenses, deleteExpenses } = useExpense();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [orderBy, setOrderBy] = useState('date');
   const [order, setOrder] = useState('desc');
   const [editingId, setEditingId] = useState(null);
   const [editFormData, setEditFormData] = useState({});
-  console.log(state)
+  const [selectedIds, setSelectedIds] = useState([]); // State for selected expenses
+
   useEffect(() => {
     fetchExpenses(); // Fetch expenses when the component mounts
   }, [fetchExpenses]);
@@ -58,6 +59,17 @@ function ExpenseList() {
     await deleteOneExpenses(id); // Call the context method to delete the expense
   };
 
+  const handleBulkDelete = async () => {
+    await deleteExpenses(selectedIds); // Call the context method to delete selected expenses
+    setSelectedIds([]); // Clear selected IDs after deletion
+  };
+
+  const handleSelectExpense = (id) => {
+    setSelectedIds((prev) => 
+      prev.includes(id) ? prev.filter(selectedId => selectedId !== id) : [...prev, id]
+    );
+  };
+
   // Sort and paginate expenses
   const sortedExpenses = [...state.expenses].sort((a, b) => {
     if (a[orderBy] < b[orderBy]) return order === 'asc' ? -1 : 1;
@@ -69,10 +81,19 @@ function ExpenseList() {
 
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+      <Button 
+        variant="contained" 
+        color="secondary" 
+        onClick={handleBulkDelete} 
+        disabled={selectedIds.length === 0} // Disable if no expenses are selected
+      >
+        Delete Selected
+      </Button>
       <TableContainer sx={{ maxHeight: 440 }}>
         <Table stickyHeader>
           <TableHead>
             <TableRow>
+              <TableCell>Select</TableCell> {/* New column for selection */}
               <TableCell>
                 <TableSortLabel
                   active={orderBy === 'date'}
@@ -107,6 +128,13 @@ function ExpenseList() {
           <TableBody>
             {paginatedExpenses.map((expense) => (
               <TableRow key={expense._id}>
+                <TableCell>
+                  <input 
+                    type="checkbox" 
+                    checked={selectedIds.includes(expense._id)} 
+                    onChange={() => handleSelectExpense(expense._id)} 
+                  />
+                </TableCell>
                 <TableCell>
                   {editingId === expense._id ? (
                     <TextField

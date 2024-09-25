@@ -4,6 +4,7 @@ import {
   createExpense, 
   updateExpense as updateExpenseApi, 
   deleteOneExpenses as deleteOneExpensesApi, 
+  deleteExpenses as deleteExpensesApi, 
 } from './../services/api';  // Adjust the path to where your api.js file is located
 
 const ExpenseContext = createContext();
@@ -50,6 +51,11 @@ function expenseReducer(state, action) {
         ...state,
         expenses: state.expenses.filter((expense) => expense._id !== action.payload),
       };
+    case 'DELETE_EXPENSES':
+      return {
+        ...state,
+        expenses: state.expenses.filter((expense) => !action.payload.includes(expense._id)),
+      };
     case 'SET_FILTERS':
       return { ...state, filters: { ...state.filters, ...action.payload } };
     case 'UPDATE_CHART_DATA':
@@ -93,6 +99,11 @@ export function ExpenseProvider({ children }) {
     dispatch({ type: 'DELETE_EXPENSE', payload: expenseId });
   }, []);
 
+  const deleteExpenses = useCallback(async (ids) => {
+    await deleteExpensesApi(ids);
+    dispatch({ type: 'DELETE_EXPENSES', payload: ids });
+  }, []);
+
   const setFilters = useCallback((filters) => {
     dispatch({ type: 'SET_FILTERS', payload: filters });
   }, []);
@@ -134,6 +145,7 @@ export function ExpenseProvider({ children }) {
     addExpense,
     updateExpense,
     deleteOneExpenses,
+    deleteExpenses,
     setFilters,
     addCategory,
     dispatch,
