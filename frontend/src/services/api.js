@@ -67,7 +67,8 @@ export const getExpenses = async (queryParams) => {
 
 export const updateExpense = async (id, expenseData) => {
   try {
-    const response = await axios.patch(`${import.meta.env.VITE_API_BASE_URL}/api/expenses/${id}`, expenseData);
+    const response = await axios.patch(`${import.meta.env.VITE_API_BASE_URL}/api/expenses/${id}`, {...expenseData, amount: parseFloat(expenseData.amount)});
+    console.log('Update response:', response.data); 
     return response.data;
   } catch (error) {
     console.error('Error updating expense:', error);
@@ -80,6 +81,15 @@ export const deleteExpenses = async (ids) => {
     const response = await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/api/expenses`, {
       data: { ids }
     });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting expenses:', error);
+    throw error;
+  }
+};
+export const deleteOneExpenses = async (id) => {
+  try {
+    const response = await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/api/expenses/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting expenses:', error);

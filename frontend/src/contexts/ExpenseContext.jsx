@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
 import { 
   getExpenses, 
   createExpense, 
-  updateExpense, 
-  deleteExpenses 
+  updateExpense as updateExpenseApi, 
+  deleteOneExpenses as deleteOneExpensesApi, 
 } from './../services/api';  // Adjust the path to where your api.js file is located
 
 const ExpenseContext = createContext();
@@ -65,26 +65,31 @@ function expenseReducer(state, action) {
 
 export function ExpenseProvider({ children }) {
   const [state, dispatch] = useReducer(expenseReducer, initialState);
+  const [loading, setLoading] = useState(true);
 
   const fetchExpenses = useCallback(async () => {
+    setLoading(true);
     const response = await getExpenses();
     dispatch({ type: 'SET_EXPENSES', payload: response });
+    setLoading(false);
   }, []);
 
   const addExpense = useCallback(async (expense) => {
-    console.log(expense, );
     const response = await createExpense(expense);
     dispatch({ type: 'ADD_EXPENSE', payload: response });
   }, []);
 
-  const updateExpense = useCallback(async (updatedExpense) => {
-    console.log(updatedExpense);
-    const response = await updateExpense(updatedExpense._id, updatedExpense);
-    dispatch({ type: 'UPDATE_EXPENSE', payload: response });
+  const updateExpense = useCallback(async (id, expenseData) => {
+    const updatedExpense = await updateExpenseApi(id, expenseData);
+    if (updatedExpense) {
+      dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
+    } else {
+      console.error('No updated expense returned from API');
+    }
   }, []);
 
-  const deleteExpense = useCallback(async (expenseId) => {
-    await deleteExpenses([expenseId]);
+  const deleteOneExpenses = useCallback(async (expenseId) => {
+    await deleteOneExpensesApi([expenseId]);
     dispatch({ type: 'DELETE_EXPENSE', payload: expenseId });
   }, []);
 
@@ -96,12 +101,39 @@ export function ExpenseProvider({ children }) {
     dispatch({ type: 'ADD_CATEGORY', payload: category });
   }, []);
 
+  // Function to calculate chart data
+  const calculateChartData = (expenses) => {
+    const monthlyData = {};
+    const categoryData = {};
+
+    expenses.forEach(expense => {
+      const month = new Date(expense.createdAt).toLocaleString('default', { month: 'long', year: 'numeric' });
+      monthlyData[month] = (monthlyData[month] || 0) + parseFloat(expense.amount);
+
+      categoryData[expense.category] = (categoryData[expense.category] || 0) + parseFloat(expense.amount);
+    });
+
+    const monthlyChartData = Object.entries(monthlyData).map(([month, total]) => ({ month, total }));
+    const categoryChartData = Object.entries(categoryData).map(([category, total]) => ({ category, total }));
+
+    return { monthlyChartData, categoryChartData };
+  };
+
+  // Update chart data whenever expenses change
+  useEffect(() => {
+    const { monthlyChartData, categoryChartData } = calculateChartData(state.expenses);
+    dispatch({
+      type: 'UPDATE_CHART_DATA',
+      payload: { monthly: monthlyChartData, category: categoryChartData },
+    });
+  }, [state.expenses]);
+
   const contextValue = {
     state,
     fetchExpenses,
     addExpense,
     updateExpense,
-    deleteExpense,
+    deleteOneExpenses,
     setFilters,
     addCategory,
     dispatch,

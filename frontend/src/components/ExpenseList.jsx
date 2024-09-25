@@ -4,7 +4,7 @@ import { Edit as EditIcon, Delete as DeleteIcon, Save as SaveIcon, Cancel as Can
 import { useExpense } from '../contexts/ExpenseContext';
 
 function ExpenseList() {
-  const { state, fetchExpenses, updateExpense, deleteExpense } = useExpense();
+  const { state, fetchExpenses, updateExpense, deleteOneExpenses } = useExpense();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [orderBy, setOrderBy] = useState('date');
@@ -42,7 +42,11 @@ function ExpenseList() {
   };
 
   const handleEditSave = async () => {
-    await updateExpense(editFormData); // Call the context method to update the expense
+    if (!editFormData._id) {
+      console.error('No ID found in editFormData:', editFormData);
+      return;
+    }
+    await updateExpense(editFormData._id, editFormData);
     setEditingId(null);
   };
 
@@ -51,7 +55,7 @@ function ExpenseList() {
   };
 
   const handleDelete = async (id) => {
-    await deleteExpense(id); // Call the context method to delete the expense
+    await deleteOneExpenses(id); // Call the context method to delete the expense
   };
 
   // Sort and paginate expenses
