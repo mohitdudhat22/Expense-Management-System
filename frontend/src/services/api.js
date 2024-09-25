@@ -20,9 +20,9 @@ export const login = async (email, password) => {
   }
 };
 
-export const register = async (email, password) => {
+export const register = async ({email, password, username, role}) => {
   try {
-    const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/register`, { email, password, username, role });
+    const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/register`, {email, password, username, role});
     localStorage.setItem('token', res.data.token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
     return true;
