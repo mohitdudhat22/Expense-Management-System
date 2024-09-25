@@ -26,13 +26,27 @@ function ExpenseForm() {
         type: 'ADD_EXPENSE',
         payload: { ...formData, id: Date.now(), amount: parseFloat(formData.amount) },
       });
-      // navigate('/list');
+      resetForm();
     }
   };
 
   const validateForm = () => {
-    // Add your validation logic here
+    // Check for empty fields or invalid values
+    if (!formData.amount || !formData.description || !formData.date || !formData.category || !formData.paymentMethod) {
+      alert("Please fill out all fields.");
+      return false;
+    }
     return true;
+  };
+
+  const resetForm = () => {
+    setFormData({
+      amount: '',
+      description: '',
+      date: '',
+      category: '',
+      paymentMethod: '',
+    });
   };
 
   return (
@@ -75,6 +89,7 @@ function ExpenseForm() {
         onChange={(event, newValue) => {
           setFormData((prevData) => ({ ...prevData, category: newValue }));
         }}
+        required
       />
       <FormControl fullWidth margin="normal">
         <InputLabel>Payment Method</InputLabel>

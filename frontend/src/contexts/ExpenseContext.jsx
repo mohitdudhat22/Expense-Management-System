@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import axios from 'axios';
 
 const ExpenseContext = createContext();
 
@@ -25,6 +26,8 @@ const initialState = {
 
 function expenseReducer(state, action) {
   switch (action.type) {
+    case 'SET_EXPENSES':
+      return { ...state, expenses: action.payload };
     case 'ADD_EXPENSE':
       return {
         ...state,
@@ -54,60 +57,29 @@ function expenseReducer(state, action) {
       return state;
   }
 }
-
+const BASE_API = import.meta.env.VITE_BASE_API;
 export function ExpenseProvider({ children }) {
   const [state, dispatch] = useReducer(expenseReducer, initialState);
 
-  const updateChartData = useCallback(() => {
-    const monthlyData = {};
-    const categoryData = {};
+  const fetchExpenses = useCallback(async () => {
+    const response = await axios.get('/api/expenses');
+    dispatch({ type: 'SET_EXPENSES', payload: response.data });
+  }, []);
 
-    state.expenses.forEach((expense) => {
-      // Monthly data
-      const month = expense.date.slice(0, 7); // YYYY-MM
-      monthlyData[month] = (monthlyData[month] || 0) + expense.amount;
+  const addExpense = useCallback(async (expense) => {
+    const response = await axios.post('/api/expenses', expense);
+    dispatch({ type: 'ADD_EXPENSE', payload: response.data });
+  }, []);
 
-      // Category data
-      categoryData[expense.category] = (categoryData[expense.category] || 0) + expense.amount;
-    });
+  const updateExpense = useCallback(async (updatedExpense) => {
+    const response = await axios.patch(`/api/expenses/${updatedExpense.id}`, updatedExpense);
+    dispatch({ type: 'UPDATE_EXPENSE', payload: response.data });
+  }, []);
 
-    const chartData = {
-      monthly: Object.entries(monthlyData).map(([month, total]) => ({ month, total })),
-      category: Object.entries(categoryData).map(([category, total]) => ({ category, total })),
-    };
-
-    dispatch({ type: 'UPDATE_CHART_DATA', payload: chartData });
-  }, [state.expenses]);
-
-  const updateStatistics = useCallback(() => {
-    const totalExpenses = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const averageExpense = totalExpenses / state.expenses.length || 0;
-    const highestExpense = Math.max(...state.expenses.map(expense => expense.amount), 0);
-    const lowestExpense = Math.min(...state.expenses.map(expense => expense.amount), 0);
-
-    dispatch({
-      type: 'UPDATE_STATISTICS',
-      payload: { totalExpenses, averageExpense, highestExpense, lowestExpense },
-    });
-  }, [state.expenses]);
-
-  const addExpense = useCallback((expense) => {
-    dispatch({ type: 'ADD_EXPENSE', payload: { ...expense, id: Date.now() } });
-    updateChartData();
-    updateStatistics();
-  }, [updateChartData, updateStatistics]);
-
-  const updateExpense = useCallback((updatedExpense) => {
-    dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
-    updateChartData();
-    updateStatistics();
-  }, [updateChartData, updateStatistics]);
-
-  const deleteExpense = useCallback((expenseId) => {
+  const deleteExpense = useCallback(async (expenseId) => {
+    await axios.delete(`${BASE_API}/api/expenses/${expenseId}`);
     dispatch({ type: 'DELETE_EXPENSE', payload: expenseId });
-    updateChartData();
-    updateStatistics();
-  }, [updateChartData, updateStatistics]);
+  }, []);
 
   const setFilters = useCallback((filters) => {
     dispatch({ type: 'SET_FILTERS', payload: filters });
@@ -119,12 +91,13 @@ export function ExpenseProvider({ children }) {
 
   const contextValue = {
     state,
+    fetchExpenses,
     addExpense,
     updateExpense,
     deleteExpense,
     setFilters,
     addCategory,
-    dispatch
+    dispatch,
   };
 
   return (

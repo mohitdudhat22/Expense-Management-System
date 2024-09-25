@@ -51,7 +51,7 @@ function ExpenseList() {
   };
 
   // Sort and paginate expenses
-  const sortedExpenses = state.expenses.sort((a, b) => {
+  const sortedExpenses = [...state.expenses].sort((a, b) => {
     if (a[orderBy] < b[orderBy]) return order === 'asc' ? -1 : 1;
     if (a[orderBy] > b[orderBy]) return order === 'asc' ? 1 : -1;
     return 0;
@@ -115,6 +115,7 @@ function ExpenseList() {
                       type="date"
                       value={editFormData.date}
                       onChange={handleEditChange}
+                      InputLabelProps={{ shrink: true }}
                     />
                   ) : (
                     expense.date
