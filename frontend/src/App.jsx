@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'; // Updated import
 import Login from './components/Login';
 import DashboardLayoutBranding from './components/DashboardLayoutBranding';
 import { useAuth } from './contexts/AuthContext';
@@ -16,21 +16,19 @@ const PrivateRoute = ({ children }) => {
 
 function App() {
   return (
-    <Router>
+    <BrowserRouter> {/* Changed Router to BrowserRouter */}
       <Routes>
+        <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
           path="/dashboard"
           element={
-            // <PrivateRoute>
               <DashboardLayoutBranding />
-            // </PrivateRoute>
           }
         />
-        <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
 

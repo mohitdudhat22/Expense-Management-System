@@ -142,7 +142,7 @@ function ExpenseList() {
   const paginatedExpenses = sortedExpenses.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
-    <Paper sx={{ width: '100%', height: '100vh', overflow: 'hidden' }}> // Set height to 100vh
+    <Paper sx={{ width: '100%', overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#1a1a1a', borderRadius: '8px' }}>
         <div style={{ display: 'flex', gap: '10px' }}>
           <Button 
@@ -183,7 +183,7 @@ function ExpenseList() {
               </label>
         </div>
       </div>
-      <TableContainer sx={{ maxHeight: 'calc(100vh - 100px)' }}> // Adjust maxHeight to fit within the screen
+      <TableContainer sx={{ maxHeight: 700 }}>
         <Table stickyHeader>
           <TableHead>
             <TableRow>

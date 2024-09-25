@@ -105,7 +105,7 @@ function ExpenseTrackerLayout(props) {
       <AppProvider
         navigation={NAVIGATION}
         branding={{
-          logo: <img src="/path/to/your/logo.png" alt="Expense Tracker Logo" />,
+          logo: <img src="/vite.svg" alt="Expense Tracker Logo" />,
           title: 'Expense Tracker',
         }}
         router={router}
