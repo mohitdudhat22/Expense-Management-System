@@ -73,9 +73,9 @@ export function ExpenseProvider({ children }) {
   const [state, dispatch] = useReducer(expenseReducer, initialState);
   const [loading, setLoading] = useState(true);
 
-  const fetchExpenses = useCallback(async () => {
+  const fetchExpenses = useCallback(async (filters = {}) => {
     setLoading(true);
-    const response = await getExpenses();
+    const response = await getExpenses(filters);
     dispatch({ type: 'SET_EXPENSES', payload: response });
     setLoading(false);
   }, []);
@@ -114,13 +114,21 @@ export function ExpenseProvider({ children }) {
 
   // Function to calculate chart data
   const calculateChartData = (expenses) => {
+    const { category, dateRange } = state.filters; // Get filters
     const monthlyData = {};
     const categoryData = {};
 
     expenses.forEach(expense => {
-      const month = new Date(expense.createdAt).toLocaleString('default', { month: 'long', year: 'numeric' });
-      monthlyData[month] = (monthlyData[month] || 0) + parseFloat(expense.amount);
+      // Apply date range filter
+      const expenseDate = new Date(expense.createdAt);
+      if (dateRange.start && expenseDate < new Date(dateRange.start)) return;
+      if (dateRange.end && expenseDate > new Date(dateRange.end)) return;
 
+      // Apply category filter
+      if (category && expense.category !== category) return;
+
+      const month = expenseDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+      monthlyData[month] = (monthlyData[month] || 0) + parseFloat(expense.amount);
       categoryData[expense.category] = (categoryData[expense.category] || 0) + parseFloat(expense.amount);
     });
 

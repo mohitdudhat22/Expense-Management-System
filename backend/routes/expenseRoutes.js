@@ -3,6 +3,7 @@ import expenseModel from '../models/expenseModel.js';
 import authorize from '../middlewares/roleMiddleware.js';
 import { cache, setCache } from '../middlewares/cacheMiddleware.js';
 import upload from '../middlewares/multerMiddleware.js';
+import { check } from 'express-validator';
 const router = express.Router();
 
 /**
@@ -107,9 +108,16 @@ router.get('/', authorize(['user', 'admin']), async (req, res) => {
   const { category, paymentMethod, startDate, endDate, sort, limit, page } = req.query;
   let filter = { userId: req.user._id };
 
+  // Apply filters based on query parameters
   if (category) filter.category = category;
   if (paymentMethod) filter.paymentMethod = paymentMethod;
-  if (startDate || endDate) filter.createdAt = { $gte: startDate, $lte: endDate };
+
+  // Handle date range filtering
+  if (startDate || endDate) {
+    filter.createdAt = {};
+    if (startDate) filter.createdAt.$gte = new Date(startDate); // Greater than or equal to startDate
+    if (endDate) filter.createdAt.$lte = new Date(endDate); // Less than or equal to endDate
+  }
 
   const expenses = await expenseModel.find(filter)
     .sort(sort || '-createdAt')

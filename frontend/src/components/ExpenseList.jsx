@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TablePagination, TableSortLabel, TextField, IconButton, Button } from '@mui/material';
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TablePagination, TableSortLabel, TextField, IconButton, Button, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Save as SaveIcon, Cancel as CancelIcon, Check as CheckIcon, Clear as ClearIcon, Upload as UploadIcon } from '@mui/icons-material';
 import { useExpense } from '../contexts/ExpenseContext';
 import { CSVLink } from 'react-csv';
@@ -17,9 +17,26 @@ function ExpenseList() {
   const [selectMode, setSelectMode] = useState(false);
   const [file, setFile] = useState(null); // State for the uploaded file
 
+  // New states for filters
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
+
   useEffect(() => {
     fetchExpenses();
   }, [fetchExpenses]);
+
+  // New function to handle filter changes
+  const handleFilterChange = () => {
+    const filters = {
+      category: categoryFilter,
+      paymentMethod: paymentMethodFilter,
+      startDate: startDateFilter,
+      endDate: endDateFilter,
+    };
+    fetchExpenses(filters); // Pass filters to fetchExpenses
+  };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -143,6 +160,50 @@ function ExpenseList() {
 
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+      <div style={{ padding: '16px' }}>
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Category</InputLabel>
+          <Select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            {state.categories.map((category) => (
+              <MenuItem key={category} value={category}>{category}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Payment Method</InputLabel>
+          <Select
+            value={paymentMethodFilter}
+            onChange={(e) => setPaymentMethodFilter(e.target.value)}
+          >
+            <MenuItem value="cash">Cash</MenuItem>
+            <MenuItem value="credit">Credit</MenuItem>
+          </Select>
+        </FormControl>
+        <TextField
+          label="Start Date"
+          type="date"
+          value={startDateFilter}
+          onChange={(e) => setStartDateFilter(e.target.value)}
+          variant="outlined"
+          size="small"
+          style={{ marginRight: '10px' }}
+        />
+        <TextField
+          label="End Date"
+          type="date"
+          value={endDateFilter}
+          onChange={(e) => setEndDateFilter(e.target.value)}
+          variant="outlined"
+          size="small"
+          style={{ marginRight: '10px' }}
+        />
+        <Button variant="contained" color="primary" onClick={handleFilterChange}>
+          Apply Filters
+        </Button>
+      </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', background: '#1a1a1a', borderRadius: '8px' }}>
         <div style={{ display: 'flex', gap: '10px' }}>
           <Button 
@@ -169,18 +230,18 @@ function ExpenseList() {
           >
             Delete Selected
           </Button>
-                        <input 
-                type="file" 
-                accept=".csv" 
-                onChange={handleFileChange} 
-                style={{ display: 'none' }} 
-                id="bulk-upload" 
-              />
-              <label htmlFor="bulk-upload">
-                <Button variant="contained" component="span" startIcon={<UploadIcon />}>
-                  Upload CSV
-                </Button>
-              </label>
+          <input 
+            type="file" 
+            accept=".csv" 
+            onChange={handleFileChange} 
+            style={{ display: 'none' }} 
+            id="bulk-upload" 
+          />
+          <label htmlFor="bulk-upload">
+            <Button variant="contained" component="span" startIcon={<UploadIcon />}>
+              Upload CSV
+            </Button>
+          </label>
         </div>
       </div>
       <TableContainer sx={{ maxHeight: 700 }}>
